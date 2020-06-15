@@ -1,9 +1,11 @@
-import pymel.core as pm
-
 import os
 import json
-import crab
+
+import pymel.core as pm
+
+from crab.constants import log
 from crab.vendor import qute
+import crab
 
 
 # ------------------------------------------------------------------------------
@@ -107,6 +109,7 @@ class ShapeSelectLeftTool(crab.RigTool):
 
         shapes = list()
 
+        # TODO: Utilise crab.config.replace_groups to get correct pattern.
         for node in pm.ls('%s_*_%s' % (crab.config.CONTROL, crab.config.LEFT)):
             if isinstance(node, pm.nt.NurbsCurve):
                 shapes.append(node)
@@ -127,6 +130,7 @@ class ShapeSelectRightTool(crab.RigTool):
 
         shapes = list()
 
+        # TODO: Utilise crab.config.replace_groups to get correct pattern.
         for node in pm.ls(
                 '%s_*_%s' % (crab.config.CONTROL, crab.config.RIGHT)):
             if isinstance(node, pm.nt.NurbsCurve):
@@ -170,21 +174,23 @@ class ShapeMirrorXTool(crab.RigTool):
                         )
                     )
 
-            except:
-                print('%s does not have an alternate side' % source_node)
+            except Exception:
+                log.exception('%s does not have an alternate side' % source_node)
 
             # -- Read the shape data from the current side
             shape_data = crab.utils.shapes.read(source_node)
 
             # -- Clear the shapes on the other side
-            if target_node.getShapes():
-                pm.delete(target_node.getShapes())
+            existing_shapes = target_node.getShapes()
+            if existing_shapes:
+                pm.delete(existing_shapes)
 
             # -- Apply the shapes to that side
             crab.utils.shapes.apply(target_node, shape_data)
 
             # -- Invert the shape globally
-            for source_shape, target_shape in zip(source_node.getShapes(), target_node.getShapes()):
+            for source_shape, target_shape in zip(source_node.getShapes(),
+                                                  target_node.getShapes()):
 
                 for idx in range(source_shape.numCVs()):
 
@@ -242,11 +248,11 @@ class ShapeMirrorYTool(crab.RigTool):
                         )
                     )
 
-            except:
+            except Exception:
                 pass
 
             if not target_node:
-                print('%s does not have an alternate side' % source_node)
+                log.warning('%s does not have an alternate side', source_node)
                 continue
 
             # -- Read the shape data from the current side
@@ -260,7 +266,8 @@ class ShapeMirrorYTool(crab.RigTool):
             crab.utils.shapes.apply(target_node, shape_data)
 
             # -- Invert the shape globally
-            for source_shape, target_shape in zip(source_node.getShapes(), target_node.getShapes()):
+            for source_shape, target_shape in zip(source_node.getShapes(),
+                                                  target_node.getShapes()):
 
                 for idx in range(source_shape.numCVs()):
 
@@ -293,10 +300,11 @@ class ShapeMirrorZTool(crab.RigTool):
 
     # --------------------------------------------------------------------------
     def run(self):
-        if not pm.selected():
+        selection = pm.selected()
+        if not selection:
             return
 
-        for source_node in pm.selected()[:]:
+        for source_node in selection[:]:
 
             target_node = None
 
@@ -318,8 +326,8 @@ class ShapeMirrorZTool(crab.RigTool):
                         )
                     )
 
-            except:
-                print('%s does not have an alternate side' % source_node)
+            except Exception:
+                log.exception('%s does not have an alternate side', source_node)
 
             # -- Read the shape data from the current side
             shape_data = crab.utils.shapes.read(source_node)
@@ -332,7 +340,8 @@ class ShapeMirrorZTool(crab.RigTool):
             crab.utils.shapes.apply(target_node, shape_data)
 
             # -- Invert the shape globally
-            for source_shape, target_shape in zip(source_node.getShapes(), target_node.getShapes()):
+            for source_shape, target_shape in zip(source_node.getShapes(),
+                                                  target_node.getShapes()):
 
                 for idx in range(source_shape.numCVs()):
 
@@ -380,6 +389,7 @@ class ShapeMirrorLeftToRightTool(crab.RigTool):
         tool = crab.tools.rigging().request('Shape : Mirror : %s' % self.options.axis.upper())
 
         # -- Select the left controls using crabs naming conventions
+        # TODO: Utilise crab.config.replace_groups to get correct pattern.
         pm.select(
             [
                 control
@@ -437,10 +447,9 @@ class ApplyShapeTool(crab.RigTool):
     # --------------------------------------------------------------------------
     def run(self, node=None, shape_name=None):
 
-        if not node:
-            node = pm.selected()
+        node = node or pm.selected()
 
-        if not isinstance(node, list):
+        if not isinstance(node, (list, tuple, set)):
             node = [node]
 
         for single_node in node:
@@ -457,10 +466,6 @@ class StoreRigShapeData(crab.RigTool):
     to a json file to allow it to be transferred to other rigs/scenes
     """
     identifier = 'Shape : Data : Store'
-
-    # --------------------------------------------------------------------------
-    def __init__(self):
-        super(StoreRigShapeData, self).__init__()
 
     # --------------------------------------------------------------------------
     def run(self, filepath=None, rig_node=None, silent=False):
@@ -498,6 +503,7 @@ class StoreRigShapeData(crab.RigTool):
                         'Shape Save Error',
                         'No shape info attribute could be found'
                     )
+
                 return False
 
             attr = possibilities[0]
@@ -519,10 +525,6 @@ class LoadRigShapeData(crab.RigTool):
     applied to the rig.
     """
     identifier = 'Shape : Data : Load'
-
-    # --------------------------------------------------------------------------
-    def __init__(self):
-        super(LoadRigShapeData, self).__init__()
 
     # --------------------------------------------------------------------------
     def run(self, filepath=None, rig_node=None, silent=False):
@@ -561,6 +563,7 @@ class LoadRigShapeData(crab.RigTool):
                         'Shape Save Error',
                         'No shape info attribute could be found'
                     )
+
                 return False
 
             attr = possibilities[0]

@@ -1,7 +1,10 @@
 import pymel.core as pm
 
-from crab.utils import shapes
 from . import config
+from crab.utils import shapes
+
+
+DEFORMER_SET_NAME = 'deformers'
 
 
 # ------------------------------------------------------------------------------
@@ -81,10 +84,10 @@ def joint(description,
     new_joint.radius.set(radius)
 
     if is_deformer:
-        if not pm.objExists('deformers'):
-            pm.sets(n='deformers', empty=True)
+        if not pm.objExists(DEFORMER_SET_NAME):
+            pm.sets(n=DEFORMER_SET_NAME, empty=True)
 
-        deformer_set = pm.PyNode('deformers')
+        deformer_set = pm.PyNode(DEFORMER_SET_NAME)
 
         if isinstance(deformer_set, pm.nt.ObjectSet):
             deformer_set.addMembers([new_joint])
@@ -168,22 +171,19 @@ def control(description,
             **options
         )
 
-    # -- Check if we need to convert lock or hide data
-    if hide_list and not isinstance(hide_list, list):
-        hide_list = hide_list.split(';')
-
-    if lock_list and not isinstance(lock_list, list):
-        lock_list = lock_list.split(';')
-
     if hide_list:
-        for attr_to_hide in hide_list:
-            if attr_to_hide:
-                parent.attr(attr_to_hide).set(k=False)
+        if not isinstance(hide_list, (list, tuple, set)):
+            hide_list = hide_list.split(';')
+
+        for attr_to_hide in filter(None, hide_list):
+            parent.attr(attr_to_hide).set(k=False)
 
     if lock_list:
-        for attr_to_lock in lock_list:
-            if attr_to_lock:
-                parent.attr(attr_to_lock).lock()
+        if not isinstance(lock_list, (list, tuple, set)):
+            lock_list = lock_list.split(';')
+
+        for attr_to_lock in filter(None, lock_list):
+            parent.attr(attr_to_lock).lock()
 
     # -- Now expose the rotation order
     parent.rotateOrder.set(k=True)
@@ -291,8 +291,8 @@ def guide(description,
     guide_node.outlinerColorG.set(config.GUIDE_COLOR[1] * (1.0 / 255))
     guide_node.outlinerColorB.set(config.GUIDE_COLOR[2] * (1.0 / 255))
 
+    # -- Set the display colour
     for guide_shape in guide_node.getShapes():
-        # -- Set the display colour
         guide_shape.overrideEnabled.set(True)
         guide_shape.overrideRGBColors.set(True)
 
@@ -384,12 +384,15 @@ def generic(node_type,
         be found if the created node is not a transform
     :type find_transform: bool
 
+    :param counter: Tag for the counter to be used during the name generation.
+    :type counter: int
+
     :return: pm.nt.DependNode
     """
     # -- Create the node
     node = pm.createNode(node_type)
 
-    if not isinstance(node, pm.nt.Transform) and find_transform:
+    if find_transform and not isinstance(node, pm.nt.Transform):
         node = node.getParent()
 
     # -- Name it based on our naming convention

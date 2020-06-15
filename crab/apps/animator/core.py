@@ -1,7 +1,7 @@
 import os
 
-import pymel.core as pm
 from maya.app.general.mayaMixin import MayaQWidgetDockableMixin
+import pymel.core as pm
 
 from ... import tools
 from ...vendor import qute
@@ -71,9 +71,6 @@ class CrabAnimator(qute.QWidget):
         # -- Populate the tool list
         self.populateTools()
 
-
-
-        # --
         self.ui.toolList.itemDoubleClicked.connect(self.runTool)
         self.ui.toolList.currentRowChanged.connect(self.populateToolOptions)
 
@@ -105,7 +102,8 @@ class CrabAnimator(qute.QWidget):
             try:
                 viability = tool.viable(node)
 
-            except: continue
+            except Exception:
+                continue
 
             if viability == tool.PRIORITY_SHOW:
                 self.tools_to_prioritise.append(tool)
@@ -242,14 +240,15 @@ class CrabAnimator(qute.QWidget):
         This will unregster all the events tied with this UI. It will
         then clear any registered ID's stored within the class.
         """
-        for job_id in self.script_job_ids:
-            pm.scriptJob(
-                kill=job_id,
-                force=True,
-            )
+        while self.script_job_ids:
+            try:
+                pm.scriptJob(
+                    kill=self.script_job_ids.pop(),
+                    force=True,
+                )
 
-        # -- Clear all our job ids
-        self.script_job_ids = list()
+            except Exception:
+                pass
 
     # --------------------------------------------------------------------------
     # noinspection PyUnusedLocal

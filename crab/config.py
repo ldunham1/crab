@@ -1,3 +1,6 @@
+from string import Formatter
+import re
+
 import pymel.core as pm
 
 
@@ -121,6 +124,125 @@ DEFAULT_CONTROL_ROTATION_ORDER = 5
 
 
 # ------------------------------------------------------------------------------
+# Determine a readable naming pattern and regex patterns for matching each group.
+NAME_PATTERN = '{category}_{description}_{counter}_{side}'
+NAME_PATTERN_GROUPS = {
+    'category': '[A-Z]+',
+    'counter': '[0-9]+',
+    'description': '[a-zA-Z0-9_]+',
+    'side': '[A-Z_]+',
+}
+
+# Generate a compiled pattern using each group as a named group.
+COMPILED_NAME_PATTERN = re.compile(
+    NAME_PATTERN.format(
+        **{
+            group: '(?P<{}>{})'.format(group, pattern)
+            for group, pattern in NAME_PATTERN_GROUPS.items()
+        }
+    )
+)
+
+
+# ------------------------------------------------------------------------------
+def validate_name(given_name):
+    """
+    Return True if the given name matches the current name pattern.
+
+    :param given_name: Name to validate.
+    :type given_name: str / pm.nt.DependNode
+
+    :return: True if the given name matches the current name pattern.
+    :rtype: bool
+    """
+    try:
+        match = COMPILED_NAME_PATTERN.match(str(given_name))
+
+    except AttributeError:
+        return False
+
+    # Build a set of all group names identified in the NAME_PATTERN
+    used_groups = set(
+        data[1]
+        for data in Formatter().parse(NAME_PATTERN)
+        if data[1]
+    )
+
+    # -- Ensure all identified groups are found in the match
+    return all(
+        grp in used_groups
+        for grp in match.groupdict()
+    )
+
+
+# ------------------------------------------------------------------------------
+def get_group(given_name, group):
+    """
+    Assuming the given name adheres to the naming convention of crab this
+    will extract the named group of the name.
+
+    :param given_name: Name to extract from.
+    :type given_name: str / pm.nt.DependNode
+
+    :param group: Group to extract.
+    :type group: str
+
+    :return: str / None
+    """
+    try:
+        return COMPILED_NAME_PATTERN.match(str(given_name)).group(group)
+
+    except AttributeError:
+        return None
+
+
+def replace_group(given_name, replace, group):
+    """
+    Replace a grouped section of the given name with the replace string
+    and name of the group.
+
+    .. code-block:: python
+
+        >>> NAME_PATTERN = '{category}_{description}_{counter}_{side}'
+        >>> original_name = NAME_PATTERN.format(
+        ...     category='CTRL',
+        ...     description='test_object_01',
+        ...     counter=0,
+        ...     side='LT',
+        ... )
+        # 'CTRL_test_object_01_0_LT'
+        >>> # We replace the "description".
+        >>> replace_group(original_name, 'new_test_obj', 'description')
+        # 'CTRL_new_test_obj_0_LT'
+
+    :param given_name: Name to use.
+    :type given_name: str
+
+    :param replace: Replace string to use.
+    :type replace: str
+
+    :param group: Group to identify in the given_name and replace.
+    :type group: str
+
+    :return: New replaced name.
+    :rtype: str
+    """
+    replace_dict = {
+        key: '\\g<{}>'.format(key)
+        for key in NAME_PATTERN_GROUPS
+    }
+    replace_dict[group] = replace
+    replace_pattern = NAME_PATTERN.format(
+        **replace_dict
+    )
+
+    return COMPILED_NAME_PATTERN.sub(
+        replace_pattern,
+        given_name,
+    )
+
+
+# ------------------------------------------------------------------------------
 # noinspection PyUnresolvedReferences
 def name(prefix, description, side, counter=1):
     """
@@ -144,12 +266,15 @@ def name(prefix, description, side, counter=1):
 
     :return:
     """
+    prefix = prefix.upper()
+    side = side.upper()
+
     while True:
-        candidate = '%s_%s_%s_%s' % (
-            prefix.upper(),
-            description,
-            counter,
-            side.upper(),
+        candidate = NAME_PATTERN.format(
+            category=prefix,
+            description=description,
+            counter=counter,
+            side=side,
         )
 
         # -- If the name is unique, return it
@@ -162,17 +287,17 @@ def name(prefix, description, side, counter=1):
 
 
 # ------------------------------------------------------------------------------
-def get_prefix(given_name):
+def get_category(given_name):
     """
     Assuming the given name adheres to the naming convention of crab this
-    will extract the prefix element of the name.
+    will extract the category element of the name.
 
-    :param given_name: Name to extract from
+    :param given_name: Name to extract from.
     :type given_name: str or pm.nt.DependNode
 
     :return: str
     """
-    return str(given_name).split(':')[-1].split('_')[0]
+    return get_group(given_name, group='category')
 
 
 # ------------------------------------------------------------------------------
@@ -181,12 +306,12 @@ def get_description(given_name):
     Assuming the given name adheres to the naming convention of crab this
     will extract the descriptive element of the name.
 
-    :param given_name: Name to extract from
+    :param given_name: Name to extract from.
     :type given_name: str or pm.nt.DependNode
 
     :return: str
     """
-    return str(given_name).split(':')[-1].split('_')[1]
+    return get_group(given_name, group='description')
 
 
 # ------------------------------------------------------------------------------
@@ -195,18 +320,16 @@ def get_counter(given_name):
     Assuming the given name adheres to the naming convention of crab this
     will extract the counter element of the name.
 
-    :param given_name: Name to extract from
+    :param given_name: Name to extract from.
     :type given_name: str or pm.nt.DependNode
 
-    :return: int
+    :return: int / None
     """
-    parts = given_name.split('_')
+    try:
+        return int(get_group(given_name, group='counter'))
 
-    for part in parts:
-        if part.isnumeric():
-            return int(part)
-
-    return None
+    except TypeError:
+        return None
 
 
 # ------------------------------------------------------------------------------
@@ -215,14 +338,9 @@ def get_side(given_name):
     Assuming the given name adheres to the naming convention of crab this
     will extract the side/location element of the name.
 
-    :param given_name: Name to extract from
+    :param given_name: Name to extract from.
     :type given_name: str or pm.nt.DependNode
 
     :return: str
     """
-    parts = given_name.split('_')
-
-    if not parts:
-        return ''
-
-    return parts[-1]
+    return get_group(given_name, group='side') or ''

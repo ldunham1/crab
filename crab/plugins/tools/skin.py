@@ -1,5 +1,7 @@
-import crab
 import pymel.core as pm
+
+from crab.constants import log
+import crab
 
 
 # ------------------------------------------------------------------------------
@@ -38,7 +40,8 @@ class CopyToUnboundMesh(crab.RigTool):
         target = pm.selected()[1]
 
         # -- Look for the mesh
-        print(current_skin_host.inputs())
+        log.debug(current_skin_host.inputs())
+
         # skin = current_skin_host.inputs(type='skinCluster')[0]
         skin = pm.PyNode(pm.mel.findRelatedSkinCluster(current_skin_host))
 
@@ -62,4 +65,3 @@ class CopyToUnboundMesh(crab.RigTool):
             surfaceAssociation='closestPoint',
             influenceAssociation=['name', 'closestJoint', 'label'],
         )
-

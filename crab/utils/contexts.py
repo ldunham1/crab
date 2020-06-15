@@ -1,9 +1,23 @@
+from functools import wraps
+
 import pymel.core as pm
 
 
 # ------------------------------------------------------------------------------
+class ContextDecorator(object):
+
+    def __call__(self, func):
+        @wraps(func)
+        def wrapper(*args, **kwargs):
+            with self:
+                return func(*args, **kwargs)
+
+        return wrapper
+
+
+# ------------------------------------------------------------------------------
 # noinspection PyUnresolvedReferences
-class UndoChunk(object):
+class UndoChunk(ContextDecorator):
 
     # --------------------------------------------------------------------------
     def __init__(self):
@@ -32,7 +46,7 @@ class UndoChunk(object):
 
 
 # ------------------------------------------------------------------------------
-class RestoredTime(object):
+class RestoredTime(ContextDecorator):
 
     # --------------------------------------------------------------------------
     def __init__(self):
@@ -49,7 +63,7 @@ class RestoredTime(object):
 
 
 # ------------------------------------------------------------------------------
-class RestoredSelection(object):
+class RestoredSelection(ContextDecorator):
     """
     Cache selection on entering and re-select on exit
     """

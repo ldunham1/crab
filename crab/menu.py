@@ -1,8 +1,10 @@
-import crab
 import webbrowser
+
 import pymel.core as pm
 
 from crab.vendor import blackout
+import crab
+
 
 CRAB_MENU_NAME = 'Crab'
 CRAB_MENU_OBJ = 'CrabMenuRoot'
@@ -66,7 +68,7 @@ def initialize():
     pm.menuItem(divider=True, parent=new_menu)
     add_menu_item('Reload', _menu_reload)
 
-    # -- We specifically only want this menu to be visibile
+    # -- We specifically only want this menu to be visible
     # -- in the rigging menu
     cached_menu_set = pm.menuSet(query=True, currentMenuSet=True)
     rigging_menu_set = pm.mel.findMenuSetFromLabel("Rigging")
@@ -82,14 +84,6 @@ def initialize():
 
 # ------------------------------------------------------------------------------
 def add_menu_item(label, callable_func, parent=CRAB_MENU_OBJ):
-    """
-
-    :param label: 
-    :param icon: 
-    :param command: 
-    :return: 
-    """
-
     return pm.menuItem(
         CRAB_MENU_OBJ + label.replace(' ', '_'),
         label=label,

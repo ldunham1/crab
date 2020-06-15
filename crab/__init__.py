@@ -4,12 +4,12 @@
 Crab is a Modular Rigging tool for Autodesk Maya. It allows a user
 to construct rigs from components (examples of components might be
 an arm, spine, leg, singular bone etc). Each component is formed of
-a contionous skeletal structure (using joints) from which a control
+a continuous skeletal structure (using joints) from which a control
 rig is built over the top.
 
 There is then the concept of Behaviours which can be thought of as
 modifiers over a control which allow for rich rig behaviours to be
-constructed across component boundries.
+constructed across component boundaries.
 
 The end result is a rigging framework which is capable of generating
 deformation and control rigs suitable for most standard game engines

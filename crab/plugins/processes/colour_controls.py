@@ -1,5 +1,4 @@
 import crab
-import pymel.core as pm
 
 
 # ------------------------------------------------------------------------------
@@ -54,10 +53,11 @@ class ColorControlsProcess(crab.Process):
     # --------------------------------------------------------------------------
     @classmethod
     def get_colour(cls, node):
-        if node.name().endswith(crab.config.LEFT):
+        side = crab.config.get_side(node.name())
+        if side.endswith(crab.config.LEFT):
             return crab.config.LEFT_COLOR
 
-        if node.name().endswith(crab.config.RIGHT):
+        elif side.endswith(crab.config.RIGHT):
             return crab.config.RIGHT_COLOR
 
         return crab.config.MIDDLE_COLOR

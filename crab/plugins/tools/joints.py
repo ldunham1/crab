@@ -1,5 +1,6 @@
-import crab
 import pymel.core as pm
+
+import crab
 
 
 # ------------------------------------------------------------------------------
@@ -34,13 +35,12 @@ class MirrorJointsAcrossTool(crab.RigTool):
                 )
             )
 
-        else:
-            return pm.PyNode(
-                node.name().replace(
-                    crab.config.RIGHT,
-                    crab.config.LEFT,
-                )
+        return pm.PyNode(
+            node.name().replace(
+                crab.config.RIGHT,
+                crab.config.LEFT,
             )
+        )
 
 
 # ------------------------------------------------------------------------------
@@ -70,7 +70,6 @@ class ToggleJointStyleTool(crab.RigTool):
     # --------------------------------------------------------------------------
     def run(self):
         selected = pm.selected()
-
         if not selected:
             return
 

@@ -1,5 +1,6 @@
-import crab
 import pymel.core as pm
+
+import crab
 
 
 # ------------------------------------------------------------------------------
@@ -18,13 +19,9 @@ class ParentConstraintBehaviour(crab.Behaviour):
     # --------------------------------------------------------------------------
     # noinspection PyUnresolvedReferences
     def apply(self):
-
-        constrain_this = pm.PyNode(self.options.constrain_this)
-        to_this = pm.PyNode(self.options.to_this)
-
         pm.parentConstraint(
-            to_this,
-            constrain_this,
+            self.options.to_this,
+            self.options.constrain_this,
             maintainOffset=self.options.maintain_offset
         )
 

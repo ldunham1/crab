@@ -1,6 +1,6 @@
-import crab
-
 import pymel.core as pm
+
+import crab
 
 
 # ------------------------------------------------------------------------------
@@ -55,7 +55,7 @@ class ObjectAimTool(crab.RigTool):
             weight=1,
             aimVector=[1, 0, 0],
             upVector=[0, 0, 1],
-            worldUpType="vector",
+            worldUpType='vector',
             worldUpVector=[0, 1, 0],
         )
         mat4 = aim_this.getMatrix()
@@ -105,7 +105,6 @@ class FollicleTool(crab.RigTool):
 
         # -- We need to test whether the surface is a mesh or not
         is_mesh = False
-
         if isinstance(surface, pm.nt.Mesh):
             is_mesh = True
 

@@ -1,5 +1,6 @@
-import crab
 import pymel.core as pm
+
+import crab
 
 
 # ------------------------------------------------------------------------------
@@ -26,6 +27,7 @@ class DefineAPoseTool(crab.RigTool):
         for joint in nodes:
             if not joint.hasAttr(self.POSE_NAME):
                 joint.addAttr(self.POSE_NAME, at='matrix')
+
             joint.attr(self.POSE_NAME).set(joint.getMatrix())
 
 

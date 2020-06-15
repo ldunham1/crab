@@ -1,11 +1,12 @@
+from . import (
+    constants,
+    utils,
+)
 from .vendor import factories
-
-from . import utils
-from . import constants
 
 
 # -- We do not want to re-populate the tool factories
-# -- continously, therefore we cache them globally and
+# -- continuously, therefore we cache them globally and
 # -- re-use them.
 _rig_library = None
 _anim_library = None

@@ -1,6 +1,8 @@
 import os
-import crab
+
 import pymel.core as pm
+
+import crab
 
 
 # ------------------------------------------------------------------------------
@@ -15,7 +17,7 @@ def get_icon(name):
 # ------------------------------------------------------------------------------
 def get_namespace(node):
     if ':' in node:
-        return ':'.join(pm.selected()[0].name().split(':')[:-1])
+        return node.rsplit(':', 1)[0]
 
     return None
 
@@ -48,17 +50,16 @@ class SelectOppositeTool(crab.tools.AnimTool):
 
         for node in current_selection:
 
-            side = crab.config.get_side(node)
+            side = crab.config.get_side(node.name())
             opp = crab.config.MIDDLE
 
-            if node.name().endswith(crab.config.RIGHT):
+            if side == crab.config.RIGHT:
                 opp = crab.config.LEFT
 
-            if node.name().endswith(crab.config.LEFT):
+            elif side == crab.config.LEFT:
                 opp = crab.config.RIGHT
 
             opp_name = node.name().replace(side, opp)
-
             if pm.objExists(opp_name):
                 nodes_to_select.append(opp_name)
 
@@ -118,7 +119,7 @@ class CopyPoseTool(crab.tools.AnimTool):
         nodes = nodes or pm.selected()
 
         for ctl in nodes:
-            CopyPoseTool.Pose[ctl.name().split(':')[-1]] = ctl.getMatrix()
+            CopyPoseTool.Pose[ctl.name().rsplit(':', 1)[-1]] = ctl.getMatrix()
 
 
 # ------------------------------------------------------------------------------
@@ -137,15 +138,13 @@ class PastePoseTool(crab.tools.AnimTool):
 
     def run(self, nodes=None):
         nodes = nodes or pm.selected()
+        if not nodes:
+            return
 
         selected_names = [
             node.name()
             for node in nodes
         ]
-
-        if not selected_names:
-            return
-
         ns = get_namespace(selected_names[0])
 
         for ctl, pose in CopyPoseTool.Pose.items():
@@ -240,7 +239,8 @@ class ResetSelection(crab.tools.AnimTool):
 
             try:
                 attr.set(value)
-            except:
+
+            except Exception:
                 pass
 
         for attr in node.listAttr(k=True, ud=True):
@@ -253,7 +253,7 @@ class ResetSelection(crab.tools.AnimTool):
             try:
                 attr.set(value)
 
-            except:
+            except Exception:
                 continue
 
 
@@ -312,11 +312,11 @@ class SnapTool(crab.tools.AnimTool):
         ]
 
         # -- Create a unique list of labels
-        labels = list()
+        labels = set()
         for node in results:
-            labels.extend(crab.utils.snap.labels(node))
-        labels = list(set(labels))
+            labels.update(crab.utils.snap.labels(node))
 
+        labels = list(labels)
         if not labels:
             return
 

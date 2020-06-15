@@ -1,6 +1,8 @@
 import re
-import crab
+
 import pymel.core as pm
+
+import crab
 
 
 # ------------------------------------------------------------------------------

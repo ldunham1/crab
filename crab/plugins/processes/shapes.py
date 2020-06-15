@@ -45,7 +45,7 @@ class ShapeStoreProcess(crab.Process):
         # -- Cycle over all the nodes in the control rig, skipping any
         # -- which do not look like controls
         for node in self.rig.control_org().getChildren(ad=True, type='transform'):
-            if node.name().startswith(crab.config.CONTROL):
+            if crab.config.get_category(node.name()) == crab.config.CONTROL:
 
                 # -- Attempt to read the shape data
                 # -- from the node

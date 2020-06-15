@@ -1,5 +1,9 @@
-import crab
 import pymel.core as pm
+
+import crab
+
+
+GEOMETRY_GRP_NAME = 'Geometry'
 
 
 # ------------------------------------------------------------------------------
@@ -34,7 +38,7 @@ class LayerProcess(crab.Process):
                 crab.config.SKELETON_LAYER,
             )
 
-        for geometry in self.rig.find_org('Geometry').getChildren(ad=True, type='mesh'):
+        for geometry in self.rig.find_org(GEOMETRY_GRP_NAME).getChildren(ad=True, type='mesh'):
             crab.utils.organise.add_to_layer(
                 geometry.getParent(),
                 crab.config.GEOMETRY_LAYER,

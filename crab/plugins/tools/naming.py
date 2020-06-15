@@ -1,8 +1,7 @@
-import re
-import crab
 import pymel.core as pm
 
 from crab.vendor import qute
+import crab
 
 
 # ------------------------------------------------------------------------------
@@ -18,6 +17,8 @@ class NameTool(crab.RigTool):
 
     # --------------------------------------------------------------------------
     def run(self):
+
+        # TODO: Utilise at crab.config.validate_name()
 
         # -- Ask for the prefix
         prefix, success = qute.QInputDialog.getItem(

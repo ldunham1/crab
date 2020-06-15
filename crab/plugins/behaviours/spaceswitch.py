@@ -1,5 +1,6 @@
-import crab
 import pymel.core as pm
+
+import crab
 
 
 # ------------------------------------------------------------------------------
@@ -40,10 +41,7 @@ class SpaceSwitch(crab.Behaviour):
             description=self.options.description,
             side=self.options.side,
             target=pm.PyNode(self.options.target),
-            spaces=[
-                pm.PyNode(space)
-                for space in self.options.spaces.split(';')
-            ],
+            spaces=pm.ls(self.options.spaces.split(';')),
             labels=self.options.labels.split(';'),
             parent_label=self.options.parent_label,
             applied_space=self.options.default_space,
@@ -68,14 +66,12 @@ class SpaceSwitch(crab.Behaviour):
 
         # -- If there are no labels then we extract the description
         # -- from each space and use that as the labels
-        if not labels:
-            labels = [
-                crab.config.get_description(space)
-                for space in spaces
-            ]
+        labels = labels or [
+            crab.config.get_description(space)
+            for space in spaces
+        ]
 
-        if not target_offsets:
-            target_offsets = dict()
+        target_offsets = target_offsets or dict()
 
         # -- This change allows us to specify the name (label) assigned
         # -- to the default parent space, making it easier to identify
@@ -157,7 +153,7 @@ class SpaceSwitch(crab.Behaviour):
                     worldSpace=True,
                 )
 
-        for axis in ['X', 'Y', 'Z']:
+        for axis in 'XYZ':
             if translation_only:
                 zero.attr('rotate%s' % axis).disconnect()
 

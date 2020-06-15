@@ -24,16 +24,17 @@ This holds all the major classes utilised in crab. These are:
 import re
 import json
 import uuid
-import traceback
+
 import pymel.core as pm
 
-from . import utils
-from . import config
-from . import create
-from . import constants
-from .vendor import factories
-
+from . import (
+    utils,
+    config,
+    create,
+    constants,
+)
 from .constants import log
+from .vendor import factories
 
 
 _FACTORY_MANAGER = None
@@ -71,6 +72,7 @@ class Rig(object):
         >>>
         >>> # -- Return the rig to an editable state
         >>> new_rig.edit()
+
     """
 
     # --------------------------------------------------------------------------
@@ -102,19 +104,17 @@ class Rig(object):
         )
 
         # -- Create the node marker
-        rig_meta = pm.createNode('network')
-        rig_meta.rename(
-            config.name(
-                prefix=config.META,
-                description=name,
-                side=config.MIDDLE,
-            )
+        rig_meta_name = config.name(
+            prefix=config.META,
+            description=name,
+            side=config.MIDDLE,
         )
+        rig_meta = pm.createNode('network', name=rig_meta_name)
 
         # -- Add the attributes required for a component marker
         rig_meta.addAttr(
             config.RIG_ROOT_LINK_ATTR,
-            at='message'
+            at='message',
         )
         rig_root.message.connect(rig_meta.attr(config.RIG_ROOT_LINK_ATTR))
 
@@ -250,7 +250,7 @@ class Rig(object):
         try:
             return self.meta().attr(config.RIG_ROOT_LINK_ATTR).inputs()[0]
 
-        except AttributeError:
+        except (AttributeError, IndexError):
             return None
 
     # --------------------------------------------------------------------------
@@ -264,7 +264,7 @@ class Rig(object):
         try:
             return self.meta().attr(config.GUIDE_ROOT_LINK_ATTR).inputs()[0]
 
-        except AttributeError:
+        except (AttributeError, IndexError):
             return None
 
     # --------------------------------------------------------------------------
@@ -277,7 +277,7 @@ class Rig(object):
         try:
             return self.meta().attr(config.CONTROL_ROOT_LINK_ATTR).inputs()[0]
 
-        except AttributeError:
+        except (AttributeError, IndexError):
             return None
 
     # --------------------------------------------------------------------------
@@ -291,7 +291,7 @@ class Rig(object):
         try:
             return self.meta().attr(config.SKELETON_ROOT_LINK_ATTR).inputs()[0]
 
-        except AttributeError:
+        except (AttributeError, IndexError):
             return None
 
     # --------------------------------------------------------------------------
@@ -305,8 +305,9 @@ class Rig(object):
 
         :return: pm.nt.Transform
         """
+        label_section = '_%s_' % label
         for child in self.node().getChildren(type='transform'):
-            if '_%s_' % label in child.name():
+            if label_section in child.name():
                 return child
 
         return None
@@ -347,10 +348,9 @@ class Rig(object):
         # -- Attempt to get the segment class
         if component_type not in self.factories.components.identifiers():
             log.error(
-                (
-                    '%s is not a recognised component_type type. Check your '
-                    'plugin paths.'
-                ) % component_type
+                '%s is not a recognised component_type type. '
+                'Check your plugin paths.',
+                component_type
             )
             return None
 
@@ -384,9 +384,8 @@ class Rig(object):
             # -- value, in which case log an error
             if not result:
                 log.error(
-                    'The %s segment failed to create its guide successfully' % (
-                        component_type,
-                    ),
+                    'The %s segment failed to create its guide successfully',
+                    component_type,
                 )
                 return None
 
@@ -396,17 +395,20 @@ class Rig(object):
             # -- Add a debug message to denote the success of the
             # -- component addition
             log.debug(
-                'Successfully created component of type: %s' % component_type)
+                'Successfully created component of type: %s',
+                component_type,
+            )
 
             return plugin
 
     # --------------------------------------------------------------------------
-    def remove_component(self, skeleton_node):
+    @staticmethod
+    def remove_component(skeleton_node):
         """
         Removes the component from the rig (re-parenting any child components
         under the next available parent).
 
-        :param component_root: Skeletal Component Root
+        :param skeleton_node: Skeletal Component Root
 
         :return: None
         """
@@ -421,7 +423,7 @@ class Rig(object):
         During this process all the stored process plugins will have their
         snapshot and pre functions called.
 
-        :return: True if the rig enters edit mode successfully
+        :return: True if the rig enters edit mode successfully.
         """
         # -- If we're already in an editable state we do not need
         # -- to do anything more
@@ -430,7 +432,7 @@ class Rig(object):
             return True
 
         # -- Before removing the control rig we need to give all our
-        # -- processes to the oppotunity to snapshop the rig and
+        # -- processes to the opportunity to snapshop the rig and
         # -- perform any pre-processes
         for proc in self.factories.processes.plugins():
             proc(self).snapshot()
@@ -450,7 +452,6 @@ class Rig(object):
             # -- Link the guide to the skeleton
             component = Component.get(guide_root)
             component.link_guide()
-
 
         return True
 
@@ -474,6 +475,7 @@ class Rig(object):
                 'isClean',
                 at='bool',
             )
+
         self.node().isClean.set(False)
 
         # -- Ensure the rig is in an editable state
@@ -508,7 +510,7 @@ class Rig(object):
             # -- skeletal component root
             component_plugin = Component.get(skeleton_component_root)
 
-            print('Starting build of : %s' % component_plugin.identifier)
+            log.debug('Starting build of : %s', component_plugin.identifier)
 
             try:
                 # -- Build the rig, generating a control component org
@@ -520,14 +522,14 @@ class Rig(object):
                 )
 
                 if not result:
-                    print('%s returned False during build.' % component_plugin.identifier)
+                    log.error('%s returned False during build.', component_plugin.identifier)
                     return False
 
-            except:
-                traceback.print_exc()
+            except Exception:
+                log.exception('')
                 return False
 
-            print('\tBuild complete')
+            log.debug('\tBuild complete.')
 
         # -- Now we need to apply any behaviours
         for behaviour_block in self.assigned_behaviours():
@@ -538,17 +540,17 @@ class Rig(object):
             # -- Update the options for the behaviour plugin
             behaviour_plugin.options.update(behaviour_block['options'])
 
-            print('Starting application of : %s' % behaviour_plugin.identifier)
+            log.debug('Starting application of : %s' % behaviour_plugin.identifier)
 
             try:
                 # -- Finally apply the behaviour
                 behaviour_plugin.apply()
 
-            except:
-                traceback.print_exc()
+            except Exception:
+                log.exception('')
                 return False
 
-            print('\tApplication complete')
+            log.debug('\tApplication complete.')
 
         # -- Mark the rig build as clean
         self.node().isClean.set(True)
@@ -556,15 +558,18 @@ class Rig(object):
         # -- Now the rig has been fully built we can run any post build
         # -- processes
         for proc in self.factories.processes.plugins():
-            print('Starting Process : %s' % proc.identifier)
+            log.debug('Starting Process : %s' % proc.identifier)
             try:
                 proc(self).post_build()
 
-            except:
-                traceback.print_exc()
+            except Exception:
+                log.exception('')
                 return False
 
-            print('\tProcess complete')
+            log.debug('\tProcess complete.')
+
+        log.info('Build completed successfully.')
+
         return True
 
     # --------------------------------------------------------------------------
@@ -600,7 +605,7 @@ class Rig(object):
 
         # -- Ensure the behaviour is accessible
         if behaviour_type not in self.factories.behaviours.identifiers():
-            log.error('%s could not be found.' % behaviour_type)
+            log.error('%s could not be found.', behaviour_type)
             return False
 
         # -- Get the current behaviour data
@@ -708,10 +713,10 @@ class Rig(object):
 
         :return: list of all the guide roots
         """
-        results = list()
+        results = []
 
-        for child in reversed(
-                self.guide_org().getChildren(allDescendents=True)):
+        children = self.guide_org().getChildren(allDescendents=True)
+        for child in reversed(children):
             if Component.is_component_root(child):
                 results.append(child)
 
@@ -725,10 +730,10 @@ class Rig(object):
 
         :return: list (pm.nt.DagNode, ...)
         """
-        results = list()
+        results = []
 
-        for child in reversed(
-                self.control_org().getChildren(allDescendents=True)):
+        children = self.control_org().getChildren(allDescendents=True)
+        for child in reversed(children):
             if Component.is_component_root(child):
                 results.append(child)
 
@@ -742,10 +747,10 @@ class Rig(object):
 
         :return: list(pm.nt.DagNode, ...)
         """
-        results = list()
+        results = []
 
-        for child in reversed(
-                self.skeleton_org().getChildren(allDescendents=True)):
+        children = self.skeleton_org().getChildren(allDescendents=True)
+        for child in reversed(children):
             if Component.is_component_root(child):
                 results.append(child)
 
@@ -763,10 +768,10 @@ class Rig(object):
 
     # --------------------------------------------------------------------------
     def components(self):
-        components = list()
+        components = []
 
         for skeleton_component_root in self.skeleton_roots():
-            print(skeleton_component_root, Component.get(skeleton_component_root))
+            log.debug(skeleton_component_root, Component.get(skeleton_component_root))
             components.append(Component.get(skeleton_component_root))
 
         return components
@@ -781,7 +786,7 @@ class Rig(object):
         """
         return [
             Rig(attr.node().attr(config.RIG_ROOT_LINK_ATTR).inputs()[0])
-            for attr in pm.ls('*.%s' % config.RIG_ROOT_LINK_ATTR, r=True)
+            for attr in pm.ls('*.%s' % config.RIG_ROOT_LINK_ATTR, recursive=True)
         ]
 
 
@@ -1184,6 +1189,7 @@ class Component(object):
                 **kwargs
             )
 
+        if scale:
             pm.scaleConstraint(
                 control,
                 skeletal_joint,
@@ -1197,6 +1203,7 @@ class Component(object):
                 config.BOUND,
                 at='message',
             )
+
         control.message.connect(skeletal_joint.attr(config.BOUND))
 
     # --------------------------------------------------------------------------
@@ -1275,19 +1282,17 @@ class Component(object):
         :return: pm.nt.DependNode
         """
         # -- Create the node marker
-        meta_node = pm.createNode('network')
-        meta_node.rename(
-            config.name(
-                prefix=config.META,
-                description=self._NON_ALPHA_NUMERICS.sub('', self.options.description or self.identifier),
-                side=self.options.side,
-            )
+        meta_node_name = config.name(
+            prefix=config.META,
+            description=self._NON_ALPHA_NUMERICS.sub('', self.options.description or self.identifier),
+            side=self.options.side,
         )
+        meta_node = pm.createNode('network', name=meta_node_name)
 
         # -- Add the attributes required for a component marker
         meta_node.addAttr(
             config.COMPONENT_MARKER,
-            dt='string'
+            dt='string',
         )
 
         # -- Store the type of the component
@@ -1342,11 +1347,12 @@ class Component(object):
         """
         for attr in node.message.outputs(plugs=True):
 
-            # -- We're looking specifically for the crab identifer
+            # -- We're looking specifically for the crab identifier
             if config.CONNECTION_PREFIX not in attr.name(includeNode=False):
                 continue
 
             return attr.node()
+
         return None
 
     # --------------------------------------------------------------------------
@@ -1364,7 +1370,6 @@ class Component(object):
         while True:
 
             meta = cls.is_component_root(node)
-
             if not meta:
                 node = node.getParent()
                 continue
@@ -1399,19 +1404,21 @@ class Component(object):
         child_components = list()
         processed_roots = list()
 
-        for child in self.skeletal_root().getChildren(ad=True):
+        skeletal_root = self.skeletal_root()
+
+        for child in skeletal_root.getChildren(ad=True):
             childs_component = Component(child)
 
             if childs_component.skeletal_root() in processed_roots:
                 continue
 
             # -- Are we part of the same component?
-            if childs_component.skeletal_root() == self.skeletal_root():
+            if childs_component.skeletal_root() == skeletal_root:
                 continue
 
             # -- If we're not recursive, we only want to look for children
             # -- which are direct descendents of this one
-            if not recursive and childs_component.parent_component().skeletal_root() != self.skeletal_root():
+            if not recursive and childs_component.parent_component().skeletal_root() != skeletal_root:
                 continue
 
             child_components.append(childs_component)
@@ -1436,17 +1443,20 @@ class Component(object):
         try:
             pm.delete(self.meta().attr(config.GUIDE_ROOT_LINK_ATTR).inputs())
 
-        except: pass
+        except Exception:
+            pass
 
         try:
             pm.delete(self.skeletal_root())
 
-        except: pass
+        except Exception:
+            pass
 
         try:
             pm.delete(self.meta())
 
-        except: pass
+        except Exception:
+            pass
 
 
 # ------------------------------------------------------------------------------

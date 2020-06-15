@@ -3,13 +3,15 @@ import json
 import functools
 import traceback
 
-import pymel.core as pm
 from maya.app.general.mayaMixin import MayaQWidgetDockableMixin
+import pymel.core as pm
 
 
-from ... import core
-from ... import tools
-from ... import utils
+from ... import (
+    core,
+    tools,
+    utils,
+)
 from ...vendor import qute
 
 
@@ -131,42 +133,41 @@ class CrabCreator(qute.QWidget):
         self.populateAppliedBehaviours()
 
     # --------------------------------------------------------------------------
+    @utils.contexts.UndoChunk()
     def edit(self):
         """
         Initiates an edit of the currently active crab rig in the scene.
 
         :return: None
         """
-        with utils.contexts.UndoChunk():
-            self.rig.edit()
+        self.rig.edit()
 
     # --------------------------------------------------------------------------
+    @utils.contexts.UndoChunk()
     def build(self):
         """
         Initiates a build of the currently active crab rig in the scene
 
         :return:
         """
-        with utils.contexts.UndoChunk():
-            try:
-                result = self.rig.build()
+        try:
+            result = self.rig.build()
+            if not result:
+                raise RuntimeError('Build Failure')
 
-                if not result:
-                    raise Exception('Build Failure')
+            qute.quick.message(
+                title='Build Success',
+                label='The rig build has been completed successfully',
+                parent=self,
+            )
 
-                qute.quick.message(
-                    title='Build Success',
-                    label='The rig build has been completed successfully',
-                    parent=self,
-                )
-
-            except:
-                traceback.print_exc()
-                qute.quick.message(
-                    title='Build Failure',
-                    label='Something went wrong during the rig build. See the script editor for details',
-                    parent=self,
-                )
+        except Exception:
+            log.exception('')
+            qute.quick.message(
+                title='Build Failure',
+                label='Something went wrong during the rig build. See the script editor for details.',
+                parent=self,
+            )
 
     # --------------------------------------------------------------------------
     def new(self):
@@ -178,9 +179,8 @@ class CrabCreator(qute.QWidget):
         name, ok = qute.QInputDialog.getText(
             self,
             'Rig Name',
-            'Please give a name for the rig'
+            'Please give a name for the rig',
         )
-
         if not ok:
             return
 
@@ -188,7 +188,7 @@ class CrabCreator(qute.QWidget):
         # -- rig property
         self.rig = core.Rig.create(name=name)
 
-        # -- Re-ppopulate the component lists
+        # -- Re-populate the component lists
         self.refreshAll()
 
     # --------------------------------------------------------------------------
@@ -214,9 +214,10 @@ class CrabCreator(qute.QWidget):
 
         # -- Add the component passing the type, parent and values
         # -- from all the options
+        selection = pm.selected()
         self.rig.add_component(
             component_type=self.ui.componentList.currentItem().text(),
-            parent=pm.selected()[0] if pm.selected() else None,
+            parent=selection[0] if selection else None,
             **options
         )
 
@@ -293,7 +294,6 @@ class CrabCreator(qute.QWidget):
 
         :return: None
         """
-
         self.ui.appliedComponentList.clear()
 
         if not self.rig:
@@ -403,7 +403,7 @@ class CrabCreator(qute.QWidget):
                 **options
             )
 
-            # -- Update the applied behaivours
+            # -- Update the applied behaviours
             self.populateAppliedBehaviours()
 
             qute.quick.message(
@@ -412,8 +412,8 @@ class CrabCreator(qute.QWidget):
                 parent=self,
             )
 
-        except:
-            traceback.print_exc()
+        except Exception:
+            log.exception('')
             qute.quick.message(
                 title='Behaviour Failure',
                 label='%s could not be added. Please check the script editor.' % behaviour_name,
@@ -806,14 +806,15 @@ class CrabCreator(qute.QWidget):
         This will unregster all the events tied with this UI. It will
         then clear any registered ID's stored within the class.
         """
-        for job_id in self.script_job_ids:
-            pm.scriptJob(
-                kill=job_id,
-                force=True,
-            )
+        while self.script_job_ids:
+            try:
+                pm.scriptJob(
+                    kill=self.script_job_ids.pop(),
+                    force=True,
+                )
 
-        # -- Clear all our job ids
-        self.script_job_ids = list()
+            except Exception:
+                pass
 
     # -------------------------------------------------------------------------
     def hookup_widget_helpers(self, widget):
@@ -851,7 +852,7 @@ class CrabCreator(qute.QWidget):
                 pm.select(text)
 
         def set_from_selected(widget_):
-            qute.setBlindValue(widget_, ';'.join([n.name() for n in pm.selected()]))
+            qute.setBlindValue(widget_, ';'.join(n.name() for n in pm.selected()))
 
         # -- Generate a menu
         menu = qute.menuFromDictionary(
@@ -865,7 +866,7 @@ class CrabCreator(qute.QWidget):
                     widget,
                 ),
             },
-            parent=self
+            parent=self,
         )
         menu.exec_(qute.QCursor().pos())
 
