@@ -199,8 +199,6 @@ class CrabCreator(qute.QWidget):
     def add_component(self):
         """
         Triggered when the user wants to add a component.
-
-        :return:
         """
         # -- If there is no selection we cannot do anything
         if not self.ui.componentList.currentItem():
@@ -208,21 +206,23 @@ class CrabCreator(qute.QWidget):
 
         # -- Get the values from all the option widgets currently
         # -- active
-        options = dict()
-        for widget in self.component_option_widgets:
-            options[widget.objectName()] = qute.deriveValue(widget)
+        options = {
+            widget.objectName(): qute.deriveValue(widget)
+            for widget in self.component_option_widgets
+        }
 
         # -- Add the component passing the type, parent and values
         # -- from all the options
         selection = pm.selected()
-        self.rig.add_component(
-            component_type=self.ui.componentList.currentItem().text(),
-            parent=selection[0] if selection else None,
-            **options
-        )
+        with utils.contexts.UndoChunk():
+            self.rig.add_component(
+                component_type=self.ui.componentList.currentItem().text(),
+                parent=selection[0] if selection else None,
+                **options
+            )
 
-        # -- Update the applied component list
-        self.populateAppliedComponents()
+            # -- Update the applied component list
+            self.populateAppliedComponents()
 
     # --------------------------------------------------------------------------
     def populateComponentOptions(self):
@@ -560,7 +560,7 @@ class CrabCreator(qute.QWidget):
             widget_item = qute.QListWidgetItem(
                 '%s (%s)' % (
                     behaviour_data['type'],
-                    behaviour_data['options']['description'],
+                    behaviour_data['options'].get('description', 'unknown'),
                 )
             )
 
@@ -734,7 +734,6 @@ class CrabCreator(qute.QWidget):
     # --------------------------------------------------------------------------
     # -- These are general convenience functions for the ui
 
-    # --------------------------------------------------------------------------
     # noinspection PyMethodMayBeStatic
     def get_rig(self):
         """
@@ -752,7 +751,6 @@ class CrabCreator(qute.QWidget):
     # --------------------------------------------------------------------------
     # -- The functions below are UI construction methods
 
-    # --------------------------------------------------------------------------
     # noinspection PyUnresolvedReferences
     def _resolveIcons(self):
         """

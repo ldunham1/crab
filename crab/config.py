@@ -65,6 +65,8 @@ EFFECTOR = 'EFF'
 CLUSTER = 'CLS'
 UPVECTOR = 'UPV'
 SPLINE = 'CRV'
+CONSTRAINT = 'CNS'
+CONSTRAINTGROUP = 'CNSG'
 
 PREFIXES = [
     ORG,
@@ -84,6 +86,8 @@ PREFIXES = [
     CLUSTER,
     UPVECTOR,
     SPLINE,
+    CONSTRAINT,
+    CONSTRAINTGROUP,
 ]
 
 # ------------------------------------------------------------------------------

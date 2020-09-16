@@ -1,6 +1,5 @@
 import pymel.core as pm
 
-from crab.vendor import qute
 import crab
 
 
@@ -13,44 +12,16 @@ class NameTool(crab.RigTool):
     def __init__(self):
         super(NameTool, self).__init__()
 
-        self.options.name = ''
+        self.options.prefix = crab.config.PREFIXES
+        self.options.description = ''
+        self.options.location = crab.config.LOCATIONS
 
     # --------------------------------------------------------------------------
     def run(self):
-
-        # TODO: Utilise at crab.config.validate_name()
-
-        # -- Ask for the prefix
-        prefix, success = qute.QInputDialog.getItem(
-            None,
-            'Name Prefix',
-            'Select a Prefix Type',
-            crab.config.PREFIXES,
-            editable=False,
-        )
-
-        if not success:
-            return
-
-        # -- Ask for the description
-        description = qute.quick.getText(
-            'Name Description',
-            'Descriptive Field',
-        )
-
+        prefix = self.options.prefix
+        description = self.options.description
+        location = self.options.location
         if not description:
-            return
-
-        # -- Ask for the location
-        location, success = qute.QInputDialog.getItem(
-            None,
-            'Name Location',
-            'Select a Location Type',
-            crab.config.LOCATIONS,
-            editable=False,
-        )
-
-        if not success:
             return
 
         # -- Now we can start renaming all the selected
