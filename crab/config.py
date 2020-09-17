@@ -16,11 +16,13 @@ META_IDENTIFIER = 'Identifier'
 META_VERSION = 'Version'
 META_OPTIONS = 'Options'
 
+
 # ------------------------------------------------------------------------------
 # -- This is a list of attribute names used by the internals of
 # -- crab to resolve relationships between objects
 BOUND = 'crabBinding'
 BEHAVIOUR_DATA = 'crabBehaviours'
+
 
 # ------------------------------------------------------------------------------
 RIG_ROOT_LINK_ATTR = 'crabRigHost'
@@ -37,6 +39,7 @@ CONTROL_LAYER = 'Controls'
 SKELETON_LAYER = 'Skeleton'
 GEOMETRY_LAYER = 'Geometry'
 
+
 # ------------------------------------------------------------------------------
 # -- This is a list of name prefixes for structural objects created
 # -- within a crab rig hierarchy
@@ -44,6 +47,7 @@ RIG_ROOT = 'RIG'
 RIG_COMPONENT = 'CMP'
 GUIDE_COMPONENT = 'GCM'
 META = 'META'
+
 
 # ------------------------------------------------------------------------------
 # -- This is a list of pre-fixes for general use within a crab plugin
@@ -114,6 +118,7 @@ LOCATIONS = [
     SIDELESS,
 ]
 
+
 # ------------------------------------------------------------------------------
 # -- Define colours based on categories
 LEFT_COLOR = [252, 48, 1]
@@ -121,6 +126,7 @@ RIGHT_COLOR = [0, 162, 254]
 MIDDLE_COLOR = [254, 209, 0]
 NON_ANIMATABLE_COLOUR = [150, 150, 150]
 GUIDE_COLOR = [162, 222, 0]
+
 
 # ------------------------------------------------------------------------------
 # -- Defines attribute defaults
@@ -163,6 +169,9 @@ def validate_name(given_name):
         match = COMPILED_NAME_PATTERN.match(str(given_name))
 
     except AttributeError:
+        return False
+
+    if not match:
         return False
 
     # Build a set of all group names identified in the NAME_PATTERN
